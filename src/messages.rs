@@ -12,6 +12,12 @@ pub struct MatrixMessage {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct WheelMessage {
+    pub addr: String,
+    pub value: u8,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct MatrixRequestMessage {
     addr: String,
 }
@@ -27,4 +33,5 @@ impl MatrixRequestMessage {
 #[derive(Debug)]
 pub enum Messages {
     Matrix(MatrixMessage),
+    Wheel(WheelMessage),
 }

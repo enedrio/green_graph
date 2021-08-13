@@ -24,6 +24,7 @@ struct Model {
     matrix_position: usize,
     skipped: bool,
     num_steps_on_screen: usize,
+    graph_offset: f32,
     tempo: f32,
     num_graphs: usize,
     ws_client: websocket::sender::Writer<TcpStream>,
@@ -78,6 +79,7 @@ fn model(app: &App) -> Model {
         matrix_position: 0,
         skipped: true,
         num_steps_on_screen,
+        graph_offset: 0.0,
         tempo: 20.0,
         num_graphs: 4,
         ws_client: sender,
@@ -98,6 +100,12 @@ fn model(app: &App) -> Model {
                                     serde_json::from_str(&msg).ok();
                                 if let Some(internal_msg) = internal_msg {
                                     send.send(Messages::Matrix(internal_msg)).unwrap();
+                                }
+                            } else if server_msg.addr == "/wheel" {
+                                let internal_msg: Option<messages::WheelMessage> =
+                                    serde_json::from_str(&msg).ok();
+                                if let Some(internal_msg) = internal_msg {
+                                    send.send(Messages::Wheel(internal_msg)).unwrap();
                                 }
                             }
                         }
@@ -153,12 +161,25 @@ fn event(_app: &App, model: &mut Model, event: WindowEvent) {
 }
 
 fn update(app: &App, model: &mut Model, _update: Update) {
+    if let Some(m) = model.ws_receiver.try_recv().ok() {
+        match m {
+            Messages::Matrix(m) => {
+                model.matrix = m.matrix;
+            }
+            Messages::Wheel(m) => {
+                model.tempo = m.value as f32 / 32.0;
+            }
+        }
+    }
+
     let win = app.window_rect();
     let step_size = win.w() / model.num_steps_on_screen as f32;
-    let t = app.duration.since_start.as_secs_f32();
-    let tempo = model.tempo;
-    let offset = (t * tempo) % step_size;
-    if offset < 1.0 && !model.skipped {
+    let t = app.duration.since_prev_update.as_secs_f32();
+    let old_offset = model.graph_offset;
+    // let tempo = model.tempo;
+    model.graph_offset = (model.graph_offset + model.tempo * t * 10.0) % step_size;
+    // let offset = model.graph_offset;
+    if old_offset > model.graph_offset {
         let matrix_cycle_len = model.matrix.len() / model.num_graphs;
         model.matrix_position = (model.matrix_position + 1) % matrix_cycle_len;
         for (i, b) in model.buffers.iter_mut().enumerate() {
@@ -168,16 +189,8 @@ fn update(app: &App, model: &mut Model, _update: Update) {
             }
         }
         model.skipped = true
-    } else if offset >= 1.0 {
+    } else {
         model.skipped = false
-    }
-
-    if let Some(m) = model.ws_receiver.try_recv().ok() {
-        match m {
-            Messages::Matrix(m) => {
-                model.matrix = m.matrix;
-            }
-        }
     }
 }
 
@@ -190,12 +203,10 @@ fn view(app: &App, model: &Model, frame: Frame) {
 
     let win = app.window_rect();
     let step_size = win.w() / model.num_steps_on_screen as f32;
-    let t = app.duration.since_start.as_secs_f32();
 
     let rect_height = win.h() * 0.1;
     let mut prev = 0;
-    let tempo = model.tempo;
-    let offset = (t * tempo) % step_size;
+    let offset = model.graph_offset;
     let offset = -1.0 * offset;
     let line_weight = 2.0;
     let x_offset = win.w() * -0.5;
