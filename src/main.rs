@@ -1,6 +1,5 @@
 use nannou::prelude::*;
 use rand::Rng;
-use serde::{Deserialize, Serialize};
 use serde_json;
 use std::cmp::{max, min};
 use std::sync::mpsc::{channel, Receiver};
@@ -9,34 +8,9 @@ use websocket::message::OwnedMessage;
 use websocket::sync::stream::TcpStream;
 use websocket::{ClientBuilder, Message};
 
-#[derive(Debug, Serialize, Deserialize)]
-struct ServerMessage {
-    addr: String,
-}
+mod messages;
 
-#[derive(Debug, Serialize, Deserialize)]
-struct MatrixMessage {
-    addr: String,
-    matrix: Vec<i32>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-struct MatrixRequestMessage {
-    addr: String,
-}
-
-impl MatrixRequestMessage {
-    pub fn new() -> Self {
-        Self {
-            addr: String::from("/get-matrix"),
-        }
-    }
-}
-
-#[derive(Debug)]
-enum Messages {
-    Matrix(MatrixMessage),
-}
+use messages::Messages;
 
 fn main() {
     nannou::app(model).update(update).run()
@@ -105,7 +79,7 @@ fn model(app: &App) -> Model {
         skipped: true,
         num_steps_on_screen,
         tempo: 20.0,
-        num_graphs: 2,
+        num_graphs: 4,
         ws_client: sender,
         ws_receiver: recv,
     };
@@ -116,11 +90,11 @@ fn model(app: &App) -> Model {
                 println!("Recv: {:?}", m);
                 match m {
                     OwnedMessage::Text(msg) => {
-                        let maybe_server_msg: Option<ServerMessage> =
+                        let maybe_server_msg: Option<messages::ServerMessage> =
                             serde_json::from_str(&msg).ok();
                         if let Some(server_msg) = maybe_server_msg {
                             if server_msg.addr == "/matrix" {
-                                let internal_msg: Option<MatrixMessage> =
+                                let internal_msg: Option<messages::MatrixMessage> =
                                     serde_json::from_str(&msg).ok();
                                 if let Some(internal_msg) = internal_msg {
                                     send.send(Messages::Matrix(internal_msg)).unwrap();
@@ -139,11 +113,12 @@ fn model(app: &App) -> Model {
 // Handle events related to the window and update the model if necessary
 fn event(_app: &App, model: &mut Model, event: WindowEvent) {
     match event {
-        WindowEvent::MousePressed(_) => {
-            let mut rng = rand::thread_rng();
-            model.matrix = model.matrix.iter().map(|_| rng.gen_range(0..2)).collect();
-            dbg!(&model.matrix);
-        }
+        // generate random matrix on mouse press
+        // WindowEvent::MousePressed(_) => {
+        //     let mut rng = rand::thread_rng();
+        //     model.matrix = model.matrix.iter().map(|_| rng.gen_range(0..2)).collect();
+        //     dbg!(&model.matrix);
+        // }
         WindowEvent::KeyPressed(key) => match key {
             Key::Left => {
                 dbg!("left");
@@ -166,7 +141,7 @@ fn event(_app: &App, model: &mut Model, event: WindowEvent) {
                 model.num_graphs = 4;
             }
             Key::S => {
-                let matrix_request = MatrixRequestMessage::new();
+                let matrix_request = messages::MatrixRequestMessage::new();
                 let mr_json = serde_json::to_string(&matrix_request).unwrap();
                 let m = Message::text(&mr_json);
                 model.ws_client.send_message(&m).unwrap();
