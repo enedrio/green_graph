@@ -186,6 +186,7 @@ fn update(app: &App, model: &mut Model, _update: Update) {
         model.matrix_position = (model.matrix_position + 1) % matrix_cycle_len;
         for (i, b) in model.buffers.iter_mut().enumerate() {
             if i < model.num_graphs {
+                // hier müssten die aktuellen werte der Matrix, rückwärtsgehend vom nächsten Wert direkt in den buffer geschrieben werden
                 b.remove(0);
                 b.push(model.matrix[model.matrix_position + (i * matrix_cycle_len)]);
             }
