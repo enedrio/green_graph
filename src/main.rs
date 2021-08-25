@@ -64,7 +64,9 @@ fn model(app: &App) -> Model {
     app.set_loop_mode(LoopMode::RefreshSync);
     let matrix = vec![0; 64];
     let buffers: Vec<Vec<i32>> = vec![vec![0; num_steps_on_screen + 1]; 4];
-    let ws_client = ClientBuilder::new("ws://127.0.0.1:8080")
+    let ip = std::env::var("WS_SERVER_IP").unwrap_or_else(|_| String::from("127.0.0.1"));
+    let address = format!("ws://{}:8080", ip);
+    let ws_client = ClientBuilder::new(&address)
         .unwrap()
         .connect_insecure()
         .unwrap();
