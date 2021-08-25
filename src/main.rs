@@ -53,8 +53,8 @@ fn model(app: &App) -> Model {
     // Create a new window! Store the ID so we can refer to it later.
     let _window = app
         .new_window()
-        .fullscreen()
-        // .size(512, 512)
+        // .fullscreen()
+        .size(512, 512)
         .title("nannou")
         .view(view) // The function that will be called for presenting graphics to a frame.
         .event(event) // The function that will be called when the window receives events.
@@ -188,6 +188,11 @@ fn update(app: &App, model: &mut Model, _update: Update) {
         for (i, b) in model.buffers.iter_mut().enumerate() {
             if i < model.num_graphs {
                 // hier müssten die aktuellen werte der Matrix, rückwärtsgehend vom nächsten Wert direkt in den buffer geschrieben werden
+                for n in 1..8 {
+                    let offset = (model.matrix_position - n) % matrix_cycle_len;
+                    let value = model.matrix[offset + (i * matrix_cycle_len)];
+                    b[model.num_steps_on_screen - (n - 1)] = value;
+                }
                 b.remove(0);
                 b.push(model.matrix[model.matrix_position + (i * matrix_cycle_len)]);
             }
