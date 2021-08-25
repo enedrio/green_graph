@@ -53,7 +53,8 @@ fn model(app: &App) -> Model {
     // Create a new window! Store the ID so we can refer to it later.
     let _window = app
         .new_window()
-        .size(512, 512)
+        .fullscreen()
+        // .size(512, 512)
         .title("nannou")
         .view(view) // The function that will be called for presenting graphics to a frame.
         .event(event) // The function that will be called when the window receives events.
@@ -82,7 +83,7 @@ fn model(app: &App) -> Model {
         skipped: true,
         num_steps_on_screen,
         graph_offset: 0.0,
-        tempo: 20.0,
+        tempo: 60.0,
         num_graphs: 4,
         ws_client: sender,
         ws_receiver: recv,
