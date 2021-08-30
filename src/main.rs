@@ -185,10 +185,11 @@ fn update(app: &App, model: &mut Model, _update: Update) {
     if old_offset > model.graph_offset {
         let matrix_cycle_len = model.matrix.len() / model.num_graphs;
         model.matrix_position = (model.matrix_position + 1) % matrix_cycle_len;
+        let now_steps = (model.num_steps_on_screen as f32 * 0.2) as usize;
         for (i, b) in model.buffers.iter_mut().enumerate() {
             if i < model.num_graphs {
                 // hier müssten die aktuellen werte der Matrix, rückwärtsgehend vom nächsten Wert direkt in den buffer geschrieben werden
-                for n in 1..8 {
+                for n in 1..now_steps {
                     let offset = (model.matrix_position - n) % matrix_cycle_len;
                     let value = model.matrix[offset + (i * matrix_cycle_len)];
                     b[model.num_steps_on_screen - (n - 1)] = value;
@@ -269,7 +270,8 @@ fn view(app: &App, model: &Model, frame: Frame) {
             }
         }
 
-        let future_width = win_width * 0.2;
+        let now_steps = ((model.num_steps_on_screen as f32 * 0.2) as usize) as f32;
+        let future_width = now_steps * step_size;
         let future_x_position = win.right() - future_width;
 
         // cover the right edge of the lines with an opaque rectangle
