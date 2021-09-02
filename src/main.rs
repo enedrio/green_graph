@@ -61,7 +61,7 @@ fn model(app: &App) -> Model {
         .build()
         .unwrap();
 
-    let num_steps_on_screen = 32;
+    let num_steps_on_screen = 48;
     app.set_loop_mode(LoopMode::RefreshSync);
     let matrix = vec![0; 64];
     let buffers: Vec<Vec<i32>> = vec![vec![0; num_steps_on_screen + 1]; 4];
@@ -92,7 +92,7 @@ fn model(app: &App) -> Model {
     std::thread::spawn(move || {
         for message in receiver.incoming_messages() {
             if let Some(m) = message.ok() {
-                println!("Recv: {:?}", m);
+                // println!("Recv: {:?}", m);
                 match m {
                     OwnedMessage::Text(msg) => {
                         let maybe_server_msg: Option<messages::ServerMessage> =
@@ -132,12 +132,12 @@ fn event(_app: &App, model: &mut Model, event: WindowEvent) {
         // }
         WindowEvent::KeyPressed(key) => match key {
             Key::Left => {
-                dbg!("left");
                 model.increment_num_steps_on_screen();
+                dbg!(model.num_steps_on_screen);
             }
             Key::Right => {
-                dbg!("right");
                 model.decrement_num_steps_on_screen();
+                dbg!(model.num_steps_on_screen);
             }
             Key::Key1 => {
                 model.num_graphs = 1;
@@ -170,7 +170,7 @@ fn update(app: &App, model: &mut Model, _update: Update) {
                 model.matrix = m.matrix;
             }
             Messages::Wheel(m) => {
-                model.tempo = m.value as f32 / 32.0;
+                model.tempo = m.value as f32 / 28.0;
             }
         }
     }
@@ -183,7 +183,7 @@ fn update(app: &App, model: &mut Model, _update: Update) {
     model.graph_offset = (model.graph_offset + model.tempo * t * 10.0) % step_size;
     // let offset = model.graph_offset;
     if old_offset > model.graph_offset {
-        let matrix_cycle_len = model.matrix.len() / model.num_graphs;
+        let matrix_cycle_len = model.matrix.len() / 4;
         model.matrix_position = (model.matrix_position + 1) % matrix_cycle_len;
         let now_steps = (model.num_steps_on_screen as f32 * 0.2) as usize;
         for (i, b) in model.buffers.iter_mut().enumerate() {
