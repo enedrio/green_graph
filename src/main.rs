@@ -405,7 +405,7 @@ fn view_mid(app: &App, model: &Model, frame: Frame) {
             }
         }
 
-        let now_steps = ((model.num_steps_on_screen as f32 * 0.2) as usize) as f32;
+        let now_steps = ((model.num_steps_on_screen as f32 * FUTURE_POSITION) as usize) as f32;
         let future_width = now_steps * step_size;
         let future_x_position = win.right() - future_width;
 
