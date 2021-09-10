@@ -9,6 +9,7 @@ use websocket::sync::stream::TcpStream;
 use websocket::{ClientBuilder, Message};
 
 mod messages;
+const FUTURE_POSITION: f32 = 0.2;
 
 use messages::Messages;
 
@@ -74,7 +75,7 @@ fn model(app: &App) -> Model {
     let _window1 = app
         .new_window()
         // .fullscreen()
-        .size(512, 300)
+        .size(1920, 1080)
         .title("left")
         .view(view_left) // The function that will be called for presenting graphics to a frame.
         .event(event) // The function that will be called when the window receives events.
@@ -84,7 +85,7 @@ fn model(app: &App) -> Model {
     let _window2 = app
         .new_window()
         // .fullscreen()
-        .size(512, 300)
+        .size(1920, 1080)
         .title("mid")
         .view(view_mid) // The function that will be called for presenting graphics to a frame.
         .event(event) // The function that will be called when the window receives events.
@@ -94,7 +95,7 @@ fn model(app: &App) -> Model {
     let _window3 = app
         .new_window()
         // .fullscreen()
-        .size(512, 300)
+        .size(1920, 1080)
         .title("right")
         .view(view_right) // The function that will be called for presenting graphics to a frame.
         .event(event) // The function that will be called when the window receives events.
@@ -231,7 +232,7 @@ fn update(app: &App, model: &mut Model, _update: Update) {
     if old_offset > model.graph_offset {
         let matrix_cycle_len = model.matrix.len() / 4;
         model.matrix_position = (model.matrix_position + 1) % matrix_cycle_len;
-        let now_steps = (model.num_steps_on_screen as f32 * 0.5) as usize;
+        let now_steps = (model.num_steps_on_screen as f32 * FUTURE_POSITION) as usize;
         for (i, b) in model.buffers_left.iter_mut().enumerate() {
             if i < model.num_graphs {
                 // hier kommen die werte vom mittleren buffer an
@@ -404,7 +405,7 @@ fn view_mid(app: &App, model: &Model, frame: Frame) {
             }
         }
 
-        let now_steps = ((model.num_steps_on_screen as f32 * 0.5) as usize) as f32;
+        let now_steps = ((model.num_steps_on_screen as f32 * 0.2) as usize) as f32;
         let future_width = now_steps * step_size;
         let future_x_position = win.right() - future_width;
 
