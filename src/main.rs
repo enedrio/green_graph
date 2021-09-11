@@ -19,9 +19,9 @@ fn main() {
 
 struct Model {
     // Store the window ID so we can refer to this specific window later if needed.
-    // _window1: WindowId,
+    _window1: WindowId,
     _window2: WindowId,
-    // _window3: WindowId,
+    _window3: WindowId,
     matrix: Vec<i32>,
     buffers_left: Vec<Vec<i32>>,
     buffers_mid: Vec<Vec<i32>>,
@@ -34,6 +34,7 @@ struct Model {
     num_graphs: usize,
     ws_client: websocket::sender::Writer<TcpStream>,
     ws_receiver: Receiver<Messages>,
+    is_black: bool,
 }
 
 impl Model {
@@ -72,16 +73,16 @@ impl Model {
 
 fn model(app: &App) -> Model {
     // Create a new window! Store the ID so we can refer to it later.
-    // let _window1 = app
-    //     .new_window()
-    //     // .fullscreen()
-    //     .size(1920, 1080)
-    //     .title("left")
-    //     .view(view_left) // The function that will be called for presenting graphics to a frame.
-    //     .event(event) // The function that will be called when the window receives events.
-    //     .build()
-    //     .unwrap();
-
+    let _window1 = app
+        .new_window()
+        // .fullscreen()
+        .size(1920, 1080)
+        .title("left")
+        .view(view_left) // The function that will be called for presenting graphics to a frame.
+        .event(event) // The function that will be called when the window receives events.
+        .build()
+        .unwrap();
+    app.set_fullscreen_on_shortcut(true);
     let _window2 = app
         .new_window()
         // .fullscreen()
@@ -92,15 +93,15 @@ fn model(app: &App) -> Model {
         .build()
         .unwrap();
 
-    // let _window3 = app
-    //     .new_window()
-    //     // .fullscreen()
-    //     .size(1920, 1080)
-    //     .title("right")
-    //     .view(view_right) // The function that will be called for presenting graphics to a frame.
-    //     .event(event) // The function that will be called when the window receives events.
-    //     .build()
-    //     .unwrap();
+    let _window3 = app
+        .new_window()
+        // .fullscreen()
+        .size(1920, 1080)
+        .title("right")
+        .view(view_right) // The function that will be called for presenting graphics to a frame.
+        .event(event) // The function that will be called when the window receives events.
+        .build()
+        .unwrap();
 
     let num_steps_on_screen = 64;
     app.set_loop_mode(LoopMode::RefreshSync);
@@ -119,9 +120,9 @@ fn model(app: &App) -> Model {
     let (send, recv): (_, Receiver<Messages>) = channel();
 
     let model = Model {
-        // _window1,
+        _window1,
         _window2,
-        // _window3,
+        _window3,
         matrix,
         buffers_left,
         buffers_mid,
@@ -134,6 +135,7 @@ fn model(app: &App) -> Model {
         num_graphs: 4,
         ws_client: sender,
         ws_receiver: recv,
+        is_black: false,
     };
 
     std::thread::spawn(move || {
@@ -192,6 +194,9 @@ fn event(_app: &App, model: &mut Model, event: WindowEvent) {
                 model.decrement_num_steps_on_screen();
                 dbg!(model.num_steps_on_screen);
             }
+            Key::Space => {
+                model.is_black = !model.is_black;
+            }
             Key::Key1 => {
                 model.num_graphs = 1;
             }
@@ -239,7 +244,7 @@ fn update(app: &App, model: &mut Model, _update: Update) {
     model.graph_offset = (model.graph_offset + model.tempo * t * 10.0) % step_size;
     // let offset = model.graph_offset;
     if old_offset > model.graph_offset {
-        let matrix_cycle_len = model.matrix.len() / 4;
+        let matrix_cycle_len = model.matrix.len() / 2;
         model.matrix_position = (model.matrix_position + 1) % matrix_cycle_len;
         let now_steps = (model.num_steps_on_screen as f32 * FUTURE_POSITION) as usize;
         for (i, b) in model.buffers_left.iter_mut().enumerate() {
@@ -285,70 +290,72 @@ fn view_left(app: &App, model: &Model, frame: Frame) {
 
     // Clear the background to black.
     draw.background().color(BLACK);
-    let win = app.window_rect();
-    let WIN_WIDTH = win.w();
-    let WIN_HEIGHT = win.h();
-    let step_size = WIN_WIDTH / model.num_steps_on_screen as f32;
 
-    let RECT_HEIGHT = WIN_HEIGHT * 0.1;
-    let mut prev = 0;
-    let offset = -1.0 * model.graph_offset;
-    const LINE_WEIGHT: f32 = 2.0;
-    let x_offset = WIN_WIDTH * -0.5;
+    if !model.is_black {
+        let win = app.window_rect();
+        let win_width = win.w();
+        let win_height = win.h();
+        let step_size = win_width / model.num_steps_on_screen as f32;
 
-    // Draw the line!
-    for (n, b) in model.buffers_left.iter().enumerate() {
-        if n < model.num_graphs {
-            let y_baseline = (WIN_HEIGHT * 0.35) - (WIN_HEIGHT * 0.25 * n as f32);
-            for (i, v) in b.iter().enumerate() {
-                if *v == 1 {
-                    let current_step = step_size * i as f32;
-                    let next_step = step_size * (i + 1) as f32;
-                    let y_offset = y_baseline + RECT_HEIGHT;
-                    if prev == 0 {
+        let rect_height = win_height * 0.1;
+        let mut prev = 0;
+        let offset = -1.0 * model.graph_offset;
+        const line_weight: f32 = 2.0;
+        let x_offset = win_width * -0.5;
+
+        // Draw the line!
+        for (n, b) in model.buffers_left.iter().enumerate() {
+            if n < model.num_graphs {
+                let y_baseline = (win_height * 0.2) - (win_height * 0.3 * n as f32);
+                for (i, v) in b.iter().enumerate() {
+                    if *v == 1 {
+                        let current_step = step_size * i as f32;
+                        let next_step = step_size * (i + 1) as f32;
+                        let y_offset = y_baseline + rect_height;
+                        if prev == 0 {
+                            draw.line()
+                                .weight(line_weight)
+                                .color(GREEN)
+                                .start(geom::point::pt2(
+                                    x_offset + offset + current_step,
+                                    y_baseline,
+                                ))
+                                .end(geom::point::pt2(
+                                    x_offset + offset + current_step,
+                                    y_offset + (line_weight * 0.5),
+                                ));
+                        }
                         draw.line()
-                            .weight(LINE_WEIGHT)
+                            .weight(line_weight)
                             .color(GREEN)
-                            .start(geom::point::pt2(
-                                x_offset + offset + current_step,
+                            .start(geom::point::pt2(x_offset + offset + current_step, y_offset))
+                            .end(geom::point::pt2(x_offset + offset + next_step, y_offset));
+                    } else {
+                        if prev == 1 {
+                            draw.line().weight(line_weight).color(GREEN).points(
+                                geom::point::pt2(
+                                    x_offset + offset + (step_size * i as f32),
+                                    y_baseline + rect_height + (line_weight * 0.5),
+                                ),
+                                geom::point::pt2(
+                                    x_offset + offset + (step_size * i as f32),
+                                    y_baseline + line_weight * -0.5,
+                                ),
+                            );
+                        }
+                        draw.line().weight(line_weight).color(GREEN).points(
+                            geom::point::pt2(x_offset + offset + (step_size * i as f32), y_baseline),
+                            geom::point::pt2(
+                                x_offset + offset + (step_size * (i + 1) as f32),
                                 y_baseline,
-                            ))
-                            .end(geom::point::pt2(
-                                x_offset + offset + current_step,
-                                y_offset + (LINE_WEIGHT * 0.5),
-                            ));
-                    }
-                    draw.line()
-                        .weight(LINE_WEIGHT)
-                        .color(GREEN)
-                        .start(geom::point::pt2(x_offset + offset + current_step, y_offset))
-                        .end(geom::point::pt2(x_offset + offset + next_step, y_offset));
-                } else {
-                    if prev == 1 {
-                        draw.line().weight(LINE_WEIGHT).color(GREEN).points(
-                            geom::point::pt2(
-                                x_offset + offset + (step_size * i as f32),
-                                y_baseline + RECT_HEIGHT + (LINE_WEIGHT * 0.5),
-                            ),
-                            geom::point::pt2(
-                                x_offset + offset + (step_size * i as f32),
-                                y_baseline + LINE_WEIGHT * -0.5,
                             ),
                         );
                     }
-                    draw.line().weight(LINE_WEIGHT).color(GREEN).points(
-                        geom::point::pt2(x_offset + offset + (step_size * i as f32), y_baseline),
-                        geom::point::pt2(
-                            x_offset + offset + (step_size * (i + 1) as f32),
-                            y_baseline,
-                        ),
-                    );
+                    prev = *v;
                 }
-                prev = *v;
             }
         }
     }
-
     // Write the result of our drawing to the window's frame.
     draw.to_frame(app, &frame).unwrap();
 }
@@ -359,105 +366,106 @@ fn view_mid(app: &App, model: &Model, frame: Frame) {
 
     // Clear the background to black.
     draw.background().color(BLACK);
+    if !model.is_black {
+        let win = app.window_rect();
+        let win_width = win.w();
+        let win_height = win.h();
+        let half_win_height = win_height * 0.5;
+        let step_size = win_width / model.num_steps_on_screen as f32;
 
-    let win = app.window_rect();
-    const WIN_WIDTH: f32 = 1920.0; // win.w();
-    const WIN_HEIGHT: f32 = 1080.0; // win.h();
-    const HALF_WIN_HEIGHT: f32 = WIN_HEIGHT * 0.5;
-    let step_size = WIN_WIDTH / model.num_steps_on_screen as f32;
+        let rect_height = win_height * 0.1;
+        let mut prev = 0;
+        let offset = -1.0 * model.graph_offset;
+        const line_weight: f32 = 2.0;
+        let x_offset = win_width * -0.5;
 
-    const RECT_HEIGHT: f32 = 108.0;
-    let mut prev = 0;
-    let offset = -1.0 * model.graph_offset;
-    const LINE_WEIGHT: f32 = 2.0;
-    let x_offset = WIN_WIDTH * -0.5;
-
-    // Draw the line!
-    for (n, b) in model.buffers_mid.iter().enumerate() {
-        if n < model.num_graphs {
-            let y_baseline = (WIN_HEIGHT * 0.35) - (WIN_HEIGHT * 0.25 * n as f32);
-            for (i, v) in b.iter().enumerate() {
-                if *v == 1 {
-                    let current_step = step_size * i as f32;
-                    let next_step = step_size * (i + 1) as f32;
-                    let y_offset = y_baseline + RECT_HEIGHT;
-                    if prev == 0 {
+        // Draw the line!
+        for (n, b) in model.buffers_mid.iter().enumerate() {
+            if n < model.num_graphs {
+                let y_baseline = (win_height * 0.2) - (win_height * 0.3 * n as f32);
+                for (i, v) in b.iter().enumerate() {
+                    if *v == 1 {
+                        let current_step = step_size * i as f32;
+                        let next_step = step_size * (i + 1) as f32;
+                        let y_offset = y_baseline + rect_height;
+                        if prev == 0 {
+                            draw.line()
+                                .weight(line_weight)
+                                .color(GREEN)
+                                .start(geom::point::pt2(
+                                    x_offset + offset + current_step,
+                                    y_baseline,
+                                ))
+                                .end(geom::point::pt2(
+                                    x_offset + offset + current_step,
+                                    y_offset + (line_weight * 0.5),
+                                ));
+                        }
                         draw.line()
-                            .weight(LINE_WEIGHT)
+                            .weight(line_weight)
+                            .color(GREEN)
+                            .start(geom::point::pt2(x_offset + offset + current_step, y_offset))
+                            .end(geom::point::pt2(x_offset + offset + next_step, y_offset));
+                    } else {
+                        if prev == 1 {
+                            draw.line()
+                                .weight(line_weight)
+                                .color(GREEN)
+                                .start(geom::point::pt2(
+                                    x_offset + offset + (step_size * i as f32),
+                                    y_baseline + rect_height + (line_weight * 0.5),
+                                ))
+                                .end(geom::point::pt2(
+                                    x_offset + offset + (step_size * i as f32),
+                                    y_baseline + line_weight * -0.5,
+                                ));
+                        }
+                        draw.line()
+                            .weight(line_weight)
                             .color(GREEN)
                             .start(geom::point::pt2(
-                                x_offset + offset + current_step,
+                                x_offset + offset + (step_size * i as f32),
                                 y_baseline,
                             ))
                             .end(geom::point::pt2(
-                                x_offset + offset + current_step,
-                                y_offset + (LINE_WEIGHT * 0.5),
+                                x_offset + offset + (step_size * (i + 1) as f32),
+                                y_baseline,
                             ));
                     }
-                    draw.line()
-                        .weight(LINE_WEIGHT)
-                        .color(GREEN)
-                        .start(geom::point::pt2(x_offset + offset + current_step, y_offset))
-                        .end(geom::point::pt2(x_offset + offset + next_step, y_offset));
-                } else {
-                    if prev == 1 {
-                        draw.line()
-                            .weight(LINE_WEIGHT)
-                            .color(GREEN)
-                            .start(geom::point::pt2(
-                                x_offset + offset + (step_size * i as f32),
-                                y_baseline + RECT_HEIGHT + (LINE_WEIGHT * 0.5),
-                            ))
-                            .end(geom::point::pt2(
-                                x_offset + offset + (step_size * i as f32),
-                                y_baseline + LINE_WEIGHT * -0.5,
-                            ));
-                    }
-                    draw.line()
-                        .weight(LINE_WEIGHT)
-                        .color(GREEN)
-                        .start(geom::point::pt2(
-                            x_offset + offset + (step_size * i as f32),
-                            y_baseline,
-                        ))
-                        .end(geom::point::pt2(
-                            x_offset + offset + (step_size * (i + 1) as f32),
-                            y_baseline,
-                        ));
+                    prev = *v;
                 }
-                prev = *v;
             }
         }
-    }
 
-    let now_steps = ((model.num_steps_on_screen as f32 * FUTURE_POSITION) as usize) as f32;
-    let future_width = now_steps * step_size;
-    let future_x_position = win.right() - future_width;
+        let now_steps = ((model.num_steps_on_screen as f32 * FUTURE_POSITION) as usize) as f32;
+        let future_width = now_steps * step_size;
+        let future_x_position = win.right() - future_width;
 
-    // cover the right edge of the lines with an opaque rectangle
-    draw.rect()
-        .w_h(future_width, WIN_HEIGHT)
-        .x_y(future_x_position + (future_width * 0.5), 0.0)
-        .rgba(0.0, 0.0, 0.0, 0.3);
+        // cover the right edge of the lines with an opaque rectangle
+        draw.rect()
+            .w_h(future_width, win_height)
+            .x_y(future_x_position + (future_width * 0.5), 0.0)
+            .rgba(0.0, 0.0, 0.0, 0.3);
 
-    // mark the moment with a dashed line
-    let num_dashes = 64;
-    let dash_length = WIN_HEIGHT / (num_dashes * 2) as f32;
-    let double_dash_length = dash_length * 2.0;
+        // mark the moment with a dashed line
+        let num_dashes = 64;
+        let dash_length = win_height / (num_dashes * 2) as f32;
+        let double_dash_length = dash_length * 2.0;
 
-    for i in 0..num_dashes {
-        let current_dash = i as f32 * double_dash_length;
-        draw.line()
-            .color(GREEN)
-            .weight(1.0)
-            .start(geom::point::pt2(
-                future_x_position,
-                HALF_WIN_HEIGHT - current_dash,
-            ))
-            .end(geom::point::pt2(
-                future_x_position,
-                HALF_WIN_HEIGHT - current_dash - dash_length,
-            ));
+        for i in 0..num_dashes {
+            let current_dash = i as f32 * double_dash_length;
+            draw.line()
+                .color(GREEN)
+                .weight(1.0)
+                .start(geom::point::pt2(
+                    future_x_position,
+                    half_win_height - current_dash,
+                ))
+                .end(geom::point::pt2(
+                    future_x_position,
+                    half_win_height - current_dash - dash_length,
+                ));
+        }
     }
 
     // Write the result of our drawing to the window's frame.
@@ -470,69 +478,71 @@ fn view_right(app: &App, model: &Model, frame: Frame) {
 
     // Clear the background to black.
     draw.background().color(BLACK);
+    if !model.is_black {
+        let win = app.window_rect();
+        let win_width = win.w();
+        let win_height = win.h();
+        let half_win_height = win_height * 0.5;
+        let step_size = win_width / model.num_steps_on_screen as f32;
 
-    let win = app.window_rect();
-    let WIN_WIDTH = win.w();
-    let WIN_HEIGHT = win.h();
-    let HALF_WIN_HEIGHT = WIN_HEIGHT * 0.5;
-    let step_size = WIN_WIDTH / model.num_steps_on_screen as f32;
+        let rect_height = win_height * 0.1;
+        let mut prev = 0;
+        let offset = -1.0 * model.graph_offset;
+        const line_weight: f32 = 2.0;
+        let x_offset = win_width * -0.5;
 
-    let RECT_HEIGHT = WIN_HEIGHT * 0.1;
-    let mut prev = 0;
-    let offset = -1.0 * model.graph_offset;
-    const LINE_WEIGHT: f32 = 2.0;
-    let x_offset = WIN_WIDTH * -0.5;
-
-    // Draw the line!
-    for (n, b) in model.buffers_right.iter().enumerate() {
-        if n < model.num_graphs {
-            let y_baseline = (WIN_HEIGHT * 0.35) - (WIN_HEIGHT * 0.25 * n as f32);
-            for (i, v) in b.iter().enumerate() {
-                if *v == 1 {
-                    let current_step = step_size * i as f32;
-                    let next_step = step_size * (i + 1) as f32;
-                    let y_offset = y_baseline + RECT_HEIGHT;
-                    if prev == 0 {
-                        draw.line().weight(LINE_WEIGHT).color(GREEN).points(
-                            geom::point::pt2(x_offset + offset + current_step, y_baseline),
+        // Draw the line!
+        for (n, b) in model.buffers_right.iter().enumerate() {
+            if n < model.num_graphs {
+                let y_baseline = (win_height * 0.2) - (win_height * 0.3 * n as f32);
+                for (i, v) in b.iter().enumerate() {
+                    if *v == 1 {
+                        let current_step = step_size * i as f32;
+                        let next_step = step_size * (i + 1) as f32;
+                        let y_offset = y_baseline + rect_height;
+                        if prev == 0 {
+                            draw.line().weight(line_weight).color(GREEN).points(
+                                geom::point::pt2(x_offset + offset + current_step, y_baseline),
+                                geom::point::pt2(
+                                    x_offset + offset + current_step,
+                                    y_offset + (line_weight * 0.5),
+                                ),
+                            );
+                        }
+                        draw.line().weight(line_weight).color(GREEN).points(
+                            geom::point::pt2(x_offset + offset + current_step, y_offset),
+                            geom::point::pt2(x_offset + offset + next_step, y_offset),
+                        );
+                    } else {
+                        if prev == 1 {
+                            draw.line().weight(line_weight).color(GREEN).points(
+                                geom::point::pt2(
+                                    x_offset + offset + (step_size * i as f32),
+                                    y_baseline + rect_height + (line_weight * 0.5),
+                                ),
+                                geom::point::pt2(
+                                    x_offset + offset + (step_size * i as f32),
+                                    y_baseline + line_weight * -0.5,
+                                ),
+                            );
+                        }
+                        draw.line().weight(line_weight).color(GREEN).points(
+                            geom::point::pt2(x_offset + offset + (step_size * i as f32), y_baseline),
                             geom::point::pt2(
-                                x_offset + offset + current_step,
-                                y_offset + (LINE_WEIGHT * 0.5),
+                                x_offset + offset + (step_size * (i + 1) as f32),
+                                y_baseline,
                             ),
                         );
                     }
-                    draw.line().weight(LINE_WEIGHT).color(GREEN).points(
-                        geom::point::pt2(x_offset + offset + current_step, y_offset),
-                        geom::point::pt2(x_offset + offset + next_step, y_offset),
-                    );
-                } else {
-                    if prev == 1 {
-                        draw.line().weight(LINE_WEIGHT).color(GREEN).points(
-                            geom::point::pt2(
-                                x_offset + offset + (step_size * i as f32),
-                                y_baseline + RECT_HEIGHT + (LINE_WEIGHT * 0.5),
-                            ),
-                            geom::point::pt2(
-                                x_offset + offset + (step_size * i as f32),
-                                y_baseline + LINE_WEIGHT * -0.5,
-                            ),
-                        );
-                    }
-                    draw.line().weight(LINE_WEIGHT).color(GREEN).points(
-                        geom::point::pt2(x_offset + offset + (step_size * i as f32), y_baseline),
-                        geom::point::pt2(
-                            x_offset + offset + (step_size * (i + 1) as f32),
-                            y_baseline,
-                        ),
-                    );
+                    prev = *v;
                 }
-                prev = *v;
             }
-        }
 
-        // cover the right edge of the lines with an opaque rectangle
+            // cover the right edge of the lines with an opaque rectangle
+            
+        }
         draw.rect()
-            .w_h(WIN_WIDTH, WIN_HEIGHT)
+            .w_h(win_width, win_height)
             .x_y(0.0, 0.0)
             .rgba(0.0, 0.0, 0.0, 0.3);
     }
