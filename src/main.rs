@@ -177,7 +177,7 @@ fn model(app: &App) -> Model {
 }
 
 // Handle events related to the window and update the model if necessary
-fn event(_app: &App, model: &mut Model, event: WindowEvent) {
+fn event(app: &App, model: &mut Model, event: WindowEvent) {
     match event {
         // generate random matrix on mouse press
         // WindowEvent::MousePressed(_) => {
@@ -193,6 +193,9 @@ fn event(_app: &App, model: &mut Model, event: WindowEvent) {
             Key::Right => {
                 model.decrement_num_steps_on_screen();
                 dbg!(model.num_steps_on_screen);
+            }
+            Key::F => {
+                app.main_window().set_fullscreen(true);
             }
             Key::Space => {
                 model.is_black = !model.is_black;
@@ -344,7 +347,10 @@ fn view_left(app: &App, model: &Model, frame: Frame) {
                             );
                         }
                         draw.line().weight(line_weight).color(GREEN).points(
-                            geom::point::pt2(x_offset + offset + (step_size * i as f32), y_baseline),
+                            geom::point::pt2(
+                                x_offset + offset + (step_size * i as f32),
+                                y_baseline,
+                            ),
                             geom::point::pt2(
                                 x_offset + offset + (step_size * (i + 1) as f32),
                                 y_baseline,
@@ -527,7 +533,10 @@ fn view_right(app: &App, model: &Model, frame: Frame) {
                             );
                         }
                         draw.line().weight(line_weight).color(GREEN).points(
-                            geom::point::pt2(x_offset + offset + (step_size * i as f32), y_baseline),
+                            geom::point::pt2(
+                                x_offset + offset + (step_size * i as f32),
+                                y_baseline,
+                            ),
                             geom::point::pt2(
                                 x_offset + offset + (step_size * (i + 1) as f32),
                                 y_baseline,
@@ -539,7 +548,6 @@ fn view_right(app: &App, model: &Model, frame: Frame) {
             }
 
             // cover the right edge of the lines with an opaque rectangle
-            
         }
      /*   draw.rect()
             .w_h(win_width, win_height)
