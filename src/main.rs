@@ -500,7 +500,7 @@ fn view_right(app: &App, model: &Model, frame: Frame) {
         // Draw the line!
         for (n, b) in model.buffers_right.iter().enumerate() {
             if n < model.num_graphs {
-                let y_baseline = (win_height * 0.2) - (win_height * 0.3 * n as f32)+200;
+                let y_baseline = (win_height * 0.2) - (win_height * 0.3 * n as f32) + 200.0;
                 for (i, v) in b.iter().enumerate() {
                     if *v == 1 {
                         let current_step = step_size * i as f32;
@@ -549,11 +549,11 @@ fn view_right(app: &App, model: &Model, frame: Frame) {
 
             // cover the right edge of the lines with an opaque rectangle
         }
-     /*   draw.rect()
-            .w_h(win_width, win_height)
-            .x_y(0.0, 0.0)
-            .rgba(0.0, 0.0, 0.0, 0.3);
-            */
+        /*   draw.rect()
+        .w_h(win_width, win_height)
+        .x_y(0.0, 0.0)
+        .rgba(0.0, 0.0, 0.0, 0.3);
+        */
     }
 
     // Write the result of our drawing to the window's frame.
