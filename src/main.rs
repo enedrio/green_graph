@@ -19,7 +19,7 @@ fn main() {
 
 struct Model {
     // Store the window ID so we can refer to this specific window later if needed.
-    _window1: WindowId,
+    // _window1: WindowId,
     _window2: WindowId,
     _window3: WindowId,
     matrix: Vec<i32>,
@@ -73,15 +73,15 @@ impl Model {
 
 fn model(app: &App) -> Model {
     // Create a new window! Store the ID so we can refer to it later.
-    let _window1 = app
-        .new_window()
-        // .fullscreen()
-        .size(1920, 1080)
-        .title("left")
-        .view(view_left) // The function that will be called for presenting graphics to a frame.
-        .event(event) // The function that will be called when the window receives events.
-        .build()
-        .unwrap();
+    // let _window1 = app
+    //     .new_window()
+    //     // .fullscreen()
+    //     .size(1920, 1080)
+    //     .title("left")
+    //     .view(view_left) // The function that will be called for presenting graphics to a frame.
+    //     .event(event) // The function that will be called when the window receives events.
+    //     .build()
+    //     .unwrap();
     app.set_fullscreen_on_shortcut(true);
     let _window2 = app
         .new_window()
@@ -120,7 +120,7 @@ fn model(app: &App) -> Model {
     let (send, recv): (_, Receiver<Messages>) = channel();
 
     let model = Model {
-        _window1,
+        // _window1,
         _window2,
         _window3,
         matrix,
@@ -309,7 +309,7 @@ fn view_left(app: &App, model: &Model, frame: Frame) {
         // Draw the line!
         for (n, b) in model.buffers_left.iter().enumerate() {
             if n < model.num_graphs {
-                let y_baseline = (win_height * 0.2) - (win_height * 0.3 * n as f32);
+                let y_baseline = (win_height * 0.2) - (win_height * 0.3 * n as f32) - 200.0;
                 for (i, v) in b.iter().enumerate() {
                     if *v == 1 {
                         let current_step = step_size * i as f32;
@@ -382,7 +382,7 @@ fn view_mid(app: &App, model: &Model, frame: Frame) {
         let rect_height = win_height * 0.1;
         let mut prev = 0;
         let offset = -1.0 * model.graph_offset;
-        const line_weight: f32 = 2.0;
+        const line_weight: f32 = 3.0;
         let x_offset = win_width * -0.5;
 
         // Draw the line!
@@ -451,7 +451,7 @@ fn view_mid(app: &App, model: &Model, frame: Frame) {
         draw.rect()
             .w_h(future_width, win_height)
             .x_y(future_x_position + (future_width * 0.5), 0.0)
-            .rgba(0.0, 0.0, 0.0, 0.5);
+            .rgba(0.0, 0.0, 0.0, 0.7);
 
         // mark the moment with a dashed line
         let num_dashes = 64;
@@ -494,13 +494,13 @@ fn view_right(app: &App, model: &Model, frame: Frame) {
         let rect_height = win_height * 0.1;
         let mut prev = 0;
         let offset = -1.0 * model.graph_offset;
-        const line_weight: f32 = 2.0;
+        const line_weight: f32 = 4.0;
         let x_offset = win_width * -0.5;
 
         // Draw the line!
         for (n, b) in model.buffers_right.iter().enumerate() {
             if n < model.num_graphs {
-                let y_baseline = (win_height * 0.2) - (win_height * 0.3 * n as f32)+200;
+                let y_baseline = (win_height * 0.2) - (win_height * 0.3 * n as f32) - 200.0;
                 for (i, v) in b.iter().enumerate() {
                     if *v == 1 {
                         let current_step = step_size * i as f32;
@@ -549,11 +549,11 @@ fn view_right(app: &App, model: &Model, frame: Frame) {
 
             // cover the right edge of the lines with an opaque rectangle
         }
-     /*   draw.rect()
+        draw.rect()
             .w_h(win_width, win_height)
             .x_y(0.0, 0.0)
-            .rgba(0.0, 0.0, 0.0, 0.3);
-            */
+            .rgba(0.0, 0.0, 0.0, 0.7);
+            
     }
 
     // Write the result of our drawing to the window's frame.
